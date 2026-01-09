@@ -1,43 +1,66 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
+import "prismjs/themes/prism-tomorrow.css"
+import Editor from "react-simple-code-editor"
+import prism from "prismjs"
+import Markdown from "react-markdown"
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
+import axios from 'axios'
+import './App.css'
 
-export default function App() {
-	const [code, setCode] = useState('')
-	const [response, setResponse] = useState('')
-	const [loading, setLoading] = useState(false)
+function App() {
+  const [ count, setCount ] = useState(0)
+  const [ code, setCode ] = useState(` function sum() {
+  return 1 + 1
+}`)
 
-	async function submit() {
-		setLoading(true)
-		setResponse('')
-		try {
-			const res = await fetch('http://localhost:3000/ai/get-review', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ code })
-			})
-			const text = await res.text()
-			setResponse(text)
-		} catch (err) {
-			setResponse('Request failed: ' + err.message)
-		} finally {
-			setLoading(false)
-		}
-	}
+  const [ review, setReview ] = useState(``)
 
-	return (
-		<div style={{ padding: 24, fontFamily: 'Arial, sans-serif' }}>
-			<h1>AI Code Reviewer</h1>
-			<textarea
-				placeholder="Paste code to review"
-				value={code}
-				onChange={e => setCode(e.target.value)}
-				style={{ width: '100%', height: 200, fontFamily: 'monospace' }}
-			/>
-			<div style={{ marginTop: 8 }}>
-				<button onClick={submit} disabled={loading || !code}>
-					{loading ? 'Reviewing…' : 'Get Review'}
-				</button>
-			</div>
-			<pre style={{ whiteSpace: 'pre-wrap', background: '#f6f8fa', padding: 12, marginTop: 12 }}>{response}</pre>
-		</div>
-	)
+  useEffect(() => {
+    prism.highlightAll()
+  }, [])
+
+  async function reviewCode() {
+    const response = await axios.post('http://localhost:3000/ai/get-review', { code })
+    setReview(response.data)
+  }
+
+  return (
+    <>
+      <main>
+        <div className="left">
+          <div className="code">
+            <Editor
+              value={code}
+              onValueChange={code => setCode(code)}
+              highlight={code => prism.highlight(code, prism.languages.javascript, "javascript")}
+              padding={10}
+              style={{
+                fontFamily: '"Fira code", "Fira Mono", monospace',
+                fontSize: 16,
+                border: "1px solid #ddd",
+                borderRadius: "5px",
+                height: "100%",
+                width: "100%"
+              }}
+            />
+          </div>
+          <div
+            onClick={reviewCode}
+            className="review">Review</div>
+        </div>
+        <div className="right">
+          <Markdown
+
+            rehypePlugins={[ rehypeHighlight ]}
+
+          >{review}</Markdown>
+        </div>
+      </main>
+    </>
+  )
 }
+
+
+
+export default App
