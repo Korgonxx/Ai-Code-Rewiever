@@ -15,14 +15,28 @@ function App() {
 }`)
 
   const [ review, setReview ] = useState(``)
+  const [ loading, setLoading ] = useState(false)
 
   useEffect(() => {
     prism.highlightAll()
   }, [])
 
   async function reviewCode() {
-    const response = await axios.post('http://localhost:3000/ai/get-review', { code })
-    setReview(response.data)
+    if (!code.trim()) {
+      setReview('Please enter code to review');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await axios.post('http://localhost:3000/ai/get-review', { code })
+      setReview(response.data)
+    } catch (error) {
+      console.error('Error:', error)
+      setReview(`Error: ${error.response?.data || error.message}`)
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -47,7 +61,11 @@ function App() {
           </div>
           <div
             onClick={reviewCode}
-            className="review">Review</div>
+            className="review"
+            style={{ opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+            disabled={loading}>
+            {loading ? 'Reviewing...' : 'Review'}
+          </div>
         </div>
         <div className="right">
           <Markdown
